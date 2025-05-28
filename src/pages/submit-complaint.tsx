@@ -1,6 +1,8 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { NextPage } from 'next';
+// Опционально для QR-кода
+// import QRCodeStyling from 'qrcode.react'; // или import { QRCodeSVG } from 'qrcode.react';
 
 
 interface IssueSubmissionItem {
@@ -35,6 +37,7 @@ const SubmitComplaintPage: NextPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [submittedIssueId, setSubmittedIssueId] = useState<number | null>(null);
+    // const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null); // Для QR
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -42,6 +45,7 @@ const SubmitComplaintPage: NextPage = () => {
         setError(null);
         setSuccessMessage(null);
         setSubmittedIssueId(null);
+        // setQrCodeUrl(null); // Для QR
 
         if (!sourceUserId.trim()) {
             setError('Пожалуйста, укажите ваш контактный Email или Telegram ID для отслеживания статуса.');
@@ -61,20 +65,20 @@ const SubmitComplaintPage: NextPage = () => {
         try {
             const response = await fetch(`/api/submit-issue/`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(issueData),
             });
 
             const result: SubmissionResponse | { detail: any } = await response.json();
 
             if (!response.ok) {
-                let errorMessage = `Ошибка сервера: ${response.status}`;
+                let errorMessage = `Ошибка сервера: ${response.statusText || response.status}`;
                 if ('detail' in result && Array.isArray(result.detail)) {
                     errorMessage = result.detail.map(err => `${err.loc.join('.')} - ${err.msg}`).join('; ');
-                } else if ('message' in result) {
-                    errorMessage = (result as SubmissionResponse).message || errorMessage;
+                } else if (typeof (result as any)?.detail === 'string') {
+                    errorMessage = (result as any).detail;
+                } else if ('message' in result && typeof result.message === 'string') {
+                    errorMessage = result.message || errorMessage;
                 }
                 throw new Error(errorMessage);
             }
@@ -82,12 +86,15 @@ const SubmitComplaintPage: NextPage = () => {
             const successResult = result as SubmissionResponse;
             setSuccessMessage(successResult.message || 'Ваше обращение успешно отправлено!');
             setSubmittedIssueId(successResult.saved_record_id);
-            // Очистка формы
-            setText('');
-            // setSourceUserId(''); // Можно оставить для повторных обращений или очистить
-            setSourceUsername('');
-            setUserFirstName('');
 
+            // Опционально: Генерация URL для QR-кода
+            // if (sourceUserId.trim() && typeof window !== 'undefined') {
+            //     const trackUrl = `${window.location.origin}/track-complaint?source_user_id=${encodeURIComponent(sourceUserId.trim())}`;
+            //     setQrCodeUrl(trackUrl);
+            // }
+
+            setText('');
+            // sourceUserId, sourceUsername, userFirstName можно не сбрасывать для удобства повторных отправок
         } catch (err: any) {
             setError(err.message || 'Произошла ошибка при отправке обращения.');
             console.error("Submission error:", err);
@@ -101,13 +108,16 @@ const SubmitComplaintPage: NextPage = () => {
             <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md">
                 <div className="container mx-auto flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
                     <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              КӨПҮРӨ
-            </span>
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">КӨПҮРӨ</span>
                     </Link>
-                    <Link href="/" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                        На главную
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        <Link href="/track-complaint" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            Отследить обращение
+                        </Link>
+                        <Link href="/" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            На главную
+                        </Link>
+                    </div>
                 </div>
             </header>
 
@@ -128,25 +138,35 @@ const SubmitComplaintPage: NextPage = () => {
                         <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-md">
                             <p className="font-semibold">Успешно!</p>
                             <p>{successMessage}</p>
-                            {submittedIssueId && <p>Номер вашего обращения: <strong>{submittedIssueId}</strong>. Сохраните его для отслеживания статуса.</p>}
+                            {submittedIssueId && <p>Номер вашего обращения: <strong>{submittedIssueId}</strong>.</p>}
+                            {sourceUserId && (
+                                <p className="mt-2">
+                                    Вы можете <Link href={`/track-complaint?source_user_id=${encodeURIComponent(sourceUserId)}`} className="font-semibold text-blue-600 hover:underline dark:text-blue-400">отследить статус</Link> вашего обращения, используя контакт: {sourceUserId}.
+                                </p>
+                            )}
+                            {/* Опционально: Отображение QR-кода */}
+                            {/* {qrCodeUrl && (
+                <div className="mt-4 text-center">
+                  <p className="mb-2">Отсканируйте QR-код для быстрого отслеживания:</p>
+                  <div className="inline-block p-2 bg-white rounded-md">
+                    <QRCodeStyling value={qrCodeUrl} size={128} level="H" />
+                  </div>
+                </div>
+              )} */}
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label htmlFor="sourceUserId" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Ваш контакт (Email или Telegram ID для отслеживания) <span className="text-red-500">*</span>
+                                Ваш контакт (Email или Telegram ID) <span className="text-red-500">*</span>
                             </label>
                             <input
-                                type="text"
-                                id="sourceUserId"
-                                value={sourceUserId}
-                                onChange={(e) => setSourceUserId(e.target.value)}
-                                required
+                                type="text" id="sourceUserId" value={sourceUserId} onChange={(e) => setSourceUserId(e.target.value)} required
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
-                                placeholder="например, user@example.com или @mytelegramid"
+                                placeholder="user@example.com или @mytelegramid"
                             />
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Этот идентификатор поможет вам отслеживать статус вашего обращения.</p>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Для отслеживания статуса вашего обращения.</p>
                         </div>
 
                         <div>
@@ -154,14 +174,9 @@ const SubmitComplaintPage: NextPage = () => {
                                 Текст обращения <span className="text-red-500">*</span>
                             </label>
                             <textarea
-                                id="text"
-                                rows={6}
-                                value={text}
-                                onChange={(e) => setText(e.target.value)}
-                                required
-                                minLength={1}
+                                id="text" rows={6} value={text} onChange={(e) => setText(e.target.value)} required minLength={1}
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
-                                placeholder="Опишите вашу проблему или предложение подробно..."
+                                placeholder="Опишите вашу проблему или предложение..."
                             />
                         </div>
 
@@ -170,10 +185,7 @@ const SubmitComplaintPage: NextPage = () => {
                                 Тип обращения <span className="text-red-500">*</span>
                             </label>
                             <select
-                                id="submissionType"
-                                value={submissionType}
-                                onChange={(e) => setSubmissionType(e.target.value as 'жалоба' | 'просьба')}
-                                required
+                                id="submissionType" value={submissionType} onChange={(e) => setSubmissionType(e.target.value as 'жалоба' | 'просьба')} required
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
                             >
                                 <option value="жалоба">Жалоба</option>
@@ -183,39 +195,24 @@ const SubmitComplaintPage: NextPage = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label htmlFor="userFirstName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Ваше имя (необязательно)
-                                </label>
-                                <input
-                                    type="text"
-                                    id="userFirstName"
-                                    value={userFirstName}
-                                    onChange={(e) => setUserFirstName(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
-                                    placeholder="Асан"
+                                <label htmlFor="userFirstName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Имя (необязательно)</label>
+                                <input type="text" id="userFirstName" value={userFirstName} onChange={(e) => setUserFirstName(e.target.value)}
+                                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
+                                       placeholder="Асан"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="sourceUsername" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                    Ваш никнейм (необязательно)
-                                </label>
-                                <input
-                                    type="text"
-                                    id="sourceUsername"
-                                    value={sourceUsername}
-                                    onChange={(e) => setSourceUsername(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
-                                    placeholder="super_asan"
+                                <label htmlFor="sourceUsername" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Никнейм (необязательно)</label>
+                                <input type="text" id="sourceUsername" value={sourceUsername} onChange={(e) => setSourceUsername(e.target.value)}
+                                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
+                                       placeholder="super_asan"
                                 />
                             </div>
                         </div>
 
-
                         <div>
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50"
+                            <button type="submit" disabled={isLoading}
+                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50"
                             >
                                 {isLoading ? 'Отправка...' : 'Отправить обращение'}
                             </button>
@@ -226,9 +223,7 @@ const SubmitComplaintPage: NextPage = () => {
 
             <footer className="border-t border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 mt-auto">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                        © {new Date().getFullYear()} Проект &#34;КӨПҮРӨ&#34;.
-                    </p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">© {new Date().getFullYear()} Проект "КӨПҮРӨ".</p>
                 </div>
             </footer>
         </div>

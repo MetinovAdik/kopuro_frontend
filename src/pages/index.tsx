@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-
 const BridgeSymbolIcon = ({ className = "w-12 h-12 mx-auto mb-3 text-blue-600 dark:text-blue-400" }: { className?: string }) => (
     <svg className={className} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 32C8 32 20 16 32 16C44 16 56 32 56 32" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -9,7 +8,6 @@ const BridgeSymbolIcon = ({ className = "w-12 h-12 mx-auto mb-3 text-blue-600 da
       <path d="M44 32V44" stroke="currentColor" strokeWidth="5" strokeLinecap="round"/>
     </svg>
 );
-
 
 const IconCheck = ({ className = "w-8 h-8 text-green-500" }: { className?: string }) => (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -50,6 +48,12 @@ export default function Home() {
               >
                 Подать обращение
               </Link>
+              <Link
+                  href="/track-complaint"
+                  className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                Отследить статус
+              </Link>
               <button
                   onClick={() => {
                     document.documentElement.classList.toggle('dark');
@@ -64,6 +68,7 @@ export default function Home() {
               </button>
             </nav>
             <div className="md:hidden">
+              {/* Мобильное меню можно будет доработать позже */}
               <button className="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -81,7 +86,7 @@ export default function Home() {
                 Ваш Голос Строит Будущее!
               </h1>
               <p className="mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-slate-700 dark:text-slate-300">
-                &#34;КӨПҮРӨ&#34; — это мост между вами и позитивными изменениями в Кыргызстане. <br/> Делитесь проблемами в социальных сетях или отправьте обращение напрямую через нашу форму – мы поможем вашему голосу быть услышанным.
+                "КӨПҮРӨ" — это мост между вами и позитивными изменениями в Кыргызстане. <br/> Делитесь проблемами в социальных сетях или отправьте обращение напрямую через нашу форму – мы поможем вашему голосу быть услышанным.
               </p>
               <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Link
@@ -104,10 +109,10 @@ export default function Home() {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-12 sm:mb-16">
                 <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
-                  Как &#34;КӨПҮРӨ&#34; помогает вам?
+                  Как "КӨПҮРӨ" помогает вам?
                 </h2>
                 <p className="mt-4 max-w-xl mx-auto text-lg text-slate-600 dark:text-slate-400">
-                  Мы верим, что каждая проблема заслуживает внимания. Ваша активность в соцсетях – ключ к переменам.
+                  Мы верим, что каждая проблема заслуживает внимания. Ваша активность – ключ к переменам.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
@@ -115,21 +120,21 @@ export default function Home() {
                   <IconMegaphone className="mx-auto mb-4 w-12 h-12 text-blue-500 dark:text-blue-400" />
                   <h3 className="text-xl font-semibold mb-2 text-slate-800 dark:text-slate-100">Ваш голос услышан</h3>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Когда вы публично делитесь проблемами (дороги, ЖКХ, экология и др.) в соцсетях, &#34;КӨПҮРӨ&#34; анализирует эту информацию.
+                    Публично делитесь проблемами или отправляйте через форму – "КӨПҮРӨ" анализирует эту информацию.
                   </p>
                 </div>
                 <div className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
                   <IconNetwork className="mx-auto mb-4 w-12 h-12 text-purple-500 dark:text-purple-400" />
-                  <h3 className="text-xl font-semibold mb-2 text-slate-800 dark:text-slate-100">Проблемы доходят до адресата</h3>
+                  <h3 className="text-xl font-semibold mb-2 text-slate-800 dark:text-slate-100">Прозрачный процесс</h3>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Мы систематизируем обращения и помогаем направить их внимание на решение актуальных вопросов.
+                    Мы систематизируем обращения и вы можете отслеживать их статус на пути к решению.
                   </p>
                 </div>
                 <div className="p-6 bg-white dark:bg-slate-800 rounded-xl shadow-lg">
                   <IconCheck className="mx-auto mb-4 w-12 h-12 text-green-500 dark:text-green-400" />
                   <h3 className="text-xl font-semibold mb-2 text-slate-800 dark:text-slate-100">Реальные изменения</h3>
                   <p className="text-slate-600 dark:text-slate-400">
-                    Чем активнее гражданское общество, тем быстрее решаются проблемы и улучшается качество жизни в нашей стране.
+                    Чем активнее гражданское общество, тем быстрее решаются проблемы и улучшается качество жизни.
                   </p>
                 </div>
               </div>
@@ -139,14 +144,17 @@ export default function Home() {
           <section id="your-role" className="py-16 sm:py-24 bg-blue-600 dark:bg-blue-700 text-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-6">
-                Ваша роль – быть активным гражданином!
+                Ваша роль – быть активным!
               </h2>
               <p className="max-w-2xl mx-auto text-lg sm:text-xl mb-8 text-blue-100 dark:text-blue-200">
-                Не молчите о проблемах! Рассказывайте о них в своих социальных сетях. Используйте хэштеги, отмечайте релевантные страницы. Каждое ваше сообщение – это шаг к улучшению.
+                Не молчите о проблемах! Рассказывайте о них в соцсетях, используйте нашу форму. Каждое ваше сообщение – это шаг к улучшению.
               </p>
-              <p className="text-lg font-medium">
-                Вместе мы сделаем Кыргызстан лучше!
-              </p>
+              <Link
+                  href="/track-complaint"
+                  className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-700 bg-white hover:bg-blue-50 dark:text-blue-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors transform hover:scale-105"
+              >
+                Проверить статус обращения
+              </Link>
             </div>
           </section>
 
@@ -157,7 +165,7 @@ export default function Home() {
               </h2>
               <BridgeSymbolIcon className="w-16 h-16 mx-auto mb-6 text-blue-600 dark:text-blue-400" />
               <p className="max-w-3xl mx-auto text-lg text-slate-700 dark:text-slate-300 leading-relaxed">
-                &#34;КӨПҮРӨ&#34; стремится создать прозрачный и эффективный канал коммуникации между гражданами и структурами, ответственными за решение общественных проблем. Мы верим, что современные технологии могут помочь каждому человеку внести свой вклад в позитивные изменения и развитие Кыргызстана. Наша цель – усилить голос каждого гражданина и способствовать построению общества, где проблемы решаются оперативно и справедливо.
+                "КӨПҮРӨ" стремится создать прозрачный и эффективный канал коммуникации между гражданами и структурами, ответственными за решение общественных проблем. Мы верим, что современные технологии могут помочь каждому человеку внести свой вклад в позитивные изменения и развитие Кыргызстана. Наша цель – усилить голос каждого гражданина и способствовать построению общества, где проблемы решаются оперативно и справедливо.
               </p>
             </div>
           </section>
@@ -169,10 +177,10 @@ export default function Home() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-2">КӨПҮРӨ</p>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              © {new Date().getFullYear()} Проект &#34;КӨПҮРӨ&#34;. <br className="sm:hidden"/> Создано с ❤️ для Кыргызстана.
+              © {new Date().getFullYear()} Проект "КӨПҮРӨ". <br className="sm:hidden"/> Создано с ❤️ для Кыргызстана.
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-              Участник Хакатона
+              techdragons
             </p>
           </div>
         </footer>
