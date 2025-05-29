@@ -1,50 +1,94 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { NextPage } from 'next';
-// Опционально для QR-кода
-// import QRCodeStyling from 'qrcode.react'; // или import { QRCodeSVG } from 'qrcode.react';
+// import QRCodeStyling from 'qrcode.react'; // or import { QRCodeSVG } from 'qrcode.react';
 
+
+// Matches backend UserSubmissionType enum values
+type UserSubmissionType = 'жалоба' | 'просьба';
+
+// Matches backend SubmissionSource enum values (assuming 'web_form' is one of them)
+type SubmissionSourceValue = 'web_form' | 'telegram' | 'whatsapp' | 'other'; // Example values
+
+// Matches backend SeverityLevel enum values
+type SeverityLevel = 'низкий' | 'средний' | 'высокий' | 'критический';
+
+// Matches backend IssueStatus enum values
+type BackendIssueStatus =
+    | 'new'
+    | 'pending_analysis'
+    | 'analyzed'
+    | 'analysis_failed'
+    | 'in_progress'
+    | 'resolved'
+    | 'rejected'
+    | 'closed_unresolved'
+    | 'pending_user_feedback'
+    | 'closed';
 
 interface IssueSubmissionItem {
     text: string;
-    submission_type_by_user: 'жалоба' | 'просьба';
-    source: 'web_form' | 'telegram' | 'whatsapp' | 'other';
+    submission_type_by_user: UserSubmissionType;
+    source: SubmissionSourceValue; // Hardcoded to 'web_form' in this component
     source_user_id: string;
     source_username?: string | null;
     user_first_name?: string | null;
 }
 
+// Corresponds to backend's LLMAnalysisResult Pydantic model
+interface LLMAnalysisResult {
+    responsible_department?: string | null;
+    complaint_type?: string | null; // "личная" | "общегражданская" | null
+    complaint_category?: string | null;
+    complaint_subcategory?: string | null;
+    address_text?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    district?: string | null;
+    severity_level?: SeverityLevel | null;
+    applicant_data?: string | null;
+    other_details?: string | null;
+}
+
+// Corresponds to backend's SubmissionResponse Pydantic model
 interface SubmissionResponse {
     saved_record_id: number;
     original_text: string;
-    submission_type_by_user: 'жалоба' | 'просьба';
-    source: string;
+    submission_type_by_user: UserSubmissionType;
+    source: string; // Actual string value from SubmissionSource enum
     source_user_id: string;
-    status: string;
-    analysis?: any | null;
+    status: BackendIssueStatus;
+    analysis?: LLMAnalysisResult | null;
     llm_processing_error?: string | null;
     message: string;
 }
 
+const statusTranslationsForSubmission: Partial<Record<BackendIssueStatus, string>> = {
+    new: 'Новое',
+    pending_analysis: 'Передано на анализ',
+    analyzed: 'Успешно проанализировано',
+    analysis_failed: 'Ошибка при автоматическом анализе',
+    // Add more if other initial statuses are possible from submit-issue
+};
+
+
 const SubmitComplaintPage: NextPage = () => {
     const [text, setText] = useState('');
-    const [submissionType, setSubmissionType] = useState<'жалоба' | 'просьба'>('жалоба');
+    const [submissionType, setSubmissionType] = useState<UserSubmissionType>('жалоба');
     const [sourceUserId, setSourceUserId] = useState('');
     const [sourceUsername, setSourceUsername] = useState('');
     const [userFirstName, setUserFirstName] = useState('');
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [submittedIssueId, setSubmittedIssueId] = useState<number | null>(null);
+    const [successInfo, setSuccessInfo] = useState<{ message: string, id: number, initialStatus: string } | null>(null);
     // const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null); // Для QR
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsLoading(true);
         setError(null);
-        setSuccessMessage(null);
-        setSubmittedIssueId(null);
+        setSuccessInfo(null);
         // setQrCodeUrl(null); // Для QR
 
         if (!sourceUserId.trim()) {
@@ -56,7 +100,7 @@ const SubmitComplaintPage: NextPage = () => {
         const issueData: IssueSubmissionItem = {
             text,
             submission_type_by_user: submissionType,
-            source: 'web_form',
+            source: 'web_form', // Hardcoded for this form
             source_user_id: sourceUserId.trim(),
             source_username: sourceUsername.trim() || null,
             user_first_name: userFirstName.trim() || null,
@@ -68,6 +112,9 @@ const SubmitComplaintPage: NextPage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(issueData),
             });
+
+            // The page will wait here until the backend (including LLM) responds.
+            // The change is in how we present the success.
 
             const result: SubmissionResponse | { detail: any } = await response.json();
 
@@ -84,17 +131,25 @@ const SubmitComplaintPage: NextPage = () => {
             }
 
             const successResult = result as SubmissionResponse;
-            setSuccessMessage(successResult.message || 'Ваше обращение успешно отправлено!');
-            setSubmittedIssueId(successResult.saved_record_id);
 
-            // Опционально: Генерация URL для QR-кода
+            const friendlyInitialStatus = statusTranslationsForSubmission[successResult.status] || successResult.status;
+
+            setSuccessInfo({
+                message: `Ваше обращение успешно получено и принято в обработку.`,
+                id: successResult.saved_record_id,
+                initialStatus: friendlyInitialStatus
+            });
+
+            // Optional: Generate URL for QR-code
             // if (sourceUserId.trim() && typeof window !== 'undefined') {
             //     const trackUrl = `${window.location.origin}/track-complaint?source_user_id=${encodeURIComponent(sourceUserId.trim())}`;
             //     setQrCodeUrl(trackUrl);
             // }
 
-            setText('');
-            // sourceUserId, sourceUsername, userFirstName можно не сбрасывать для удобства повторных отправок
+            setText(''); // Clear the main text field
+            // Optionally keep contact details for subsequent submissions
+            // setSubmissionType('жалоба'); // Reset submission type if needed
+
         } catch (err: any) {
             setError(err.message || 'Произошла ошибка при отправке обращения.');
             console.error("Submission error:", err);
@@ -134,11 +189,12 @@ const SubmitComplaintPage: NextPage = () => {
                         </div>
                     )}
 
-                    {successMessage && (
+                    {successInfo && (
                         <div className="mb-6 p-4 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 rounded-md">
                             <p className="font-semibold">Успешно!</p>
-                            <p>{successMessage}</p>
-                            {submittedIssueId && <p>Номер вашего обращения: <strong>{submittedIssueId}</strong>.</p>}
+                            <p>{successInfo.message}</p>
+                            <p>Номер вашего обращения: <strong>{successInfo.id}</strong>.</p>
+                            <p>Начальный статус: <strong>{successInfo.initialStatus}</strong>.</p>
                             {sourceUserId && (
                                 <p className="mt-2">
                                     Вы можете <Link href={`/track-complaint?source_user_id=${encodeURIComponent(sourceUserId)}`} className="font-semibold text-blue-600 hover:underline dark:text-blue-400">отследить статус</Link> вашего обращения, используя контакт: {sourceUserId}.
@@ -146,13 +202,13 @@ const SubmitComplaintPage: NextPage = () => {
                             )}
                             {/* Опционально: Отображение QR-кода */}
                             {/* {qrCodeUrl && (
-                <div className="mt-4 text-center">
-                  <p className="mb-2">Отсканируйте QR-код для быстрого отслеживания:</p>
-                  <div className="inline-block p-2 bg-white rounded-md">
-                    <QRCodeStyling value={qrCodeUrl} size={128} level="H" />
-                  </div>
-                </div>
-              )} */}
+                                <div className="mt-4 text-center">
+                                <p className="mb-2">Отсканируйте QR-код для быстрого отслеживания:</p>
+                                <div className="inline-block p-2 bg-white rounded-md">
+                                    <QRCodeStyling value={qrCodeUrl} size={128} level="H" />
+                                </div>
+                                </div>
+                            )} */}
                         </div>
                     )}
 
@@ -185,7 +241,7 @@ const SubmitComplaintPage: NextPage = () => {
                                 Тип обращения <span className="text-red-500">*</span>
                             </label>
                             <select
-                                id="submissionType" value={submissionType} onChange={(e) => setSubmissionType(e.target.value as 'жалоба' | 'просьба')} required
+                                id="submissionType" value={submissionType} onChange={(e) => setSubmissionType(e.target.value as UserSubmissionType)} required
                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-slate-700 dark:text-slate-50"
                             >
                                 <option value="жалоба">Жалоба</option>
